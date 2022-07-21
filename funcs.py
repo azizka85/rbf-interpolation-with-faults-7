@@ -185,7 +185,7 @@ def rbf_interpolant(b, points, x, y):
 
   return z
 
-def cs_rbf(points, ri):
+def cs_rbf(points, faults, ri):
   n = len(points)
 
   tree = KDTree(points, copy_data=True)
@@ -224,12 +224,16 @@ def cs_rbf(points, ri):
 
   faults_exclude_points(faults, tree, rf, points, res, ri)
 
+  max_count = 0
+  min_count = n
   new_points = []
 
   for i in range(0, n):
     s = res[i]
 
     if len(s) > 1:
+      min_count = min(min_count, len(s))
+      max_count = max(max_count, len(s))
       new_points.append(points[i])
 
   points = new_points
@@ -237,7 +241,7 @@ def cs_rbf(points, ri):
   n = len(points)
 
   print('After fault detection:')
-  print(f'points = {n}')
+  print(f'points = {n}, max count = {max_count}, min count = {min_count}, ri = {ri}')
 
   tree = KDTree(points, copy_data=True)
 

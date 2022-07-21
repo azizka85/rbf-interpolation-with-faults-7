@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 
 import funcs
 
+from examples.example_1 import faults
+
 x = np.outer(np.linspace(-1, 1, 101), np.ones(101))
 y = np.outer(np.linspace(-1, 1, 101), np.ones(101)).T
 
@@ -44,22 +46,22 @@ ax.set_title('Surface plot')
 start = time()
 print('rbf start: ', start)
 
-b = funcs.rbf(points)
-z_rbf = funcs.rbf_interpolant(b, points, x, y)
-mre = np.max(np.absolute(z-z_rbf)) / max_az
+new_points, tree, b = funcs.cs_rbf(points, [], ri)
+z_cs_rbf = funcs.cs_rbf_interpolant(tree, b[0], new_points, x, y, ri)
+mre = np.max(np.absolute(z-z_cs_rbf)) / max_az
 
 finish = time()
 print('rbf finish: ', finish, ', time: ', finish - start)
 
 ax = fig.add_subplot(1, 4, 3, projection='3d')
-ax.plot_surface(x, y, z_rbf, cmap='plasma')
+ax.plot_surface(x, y, z_cs_rbf, cmap='plasma')
 ax.set_title(f'Without Faults, mre={round(mre, 2)}, time={round(finish - start, 2)}')
 
 start = time()
 print('cs rbf start: ', start)
 
-points, tree, b = funcs.cs_rbf(points, ri)
-z_cs_rbf = funcs.cs_rbf_interpolant(tree, b[0], points, x, y, ri)
+new_points, tree, b = funcs.cs_rbf(points, faults, ri)
+z_cs_rbf = funcs.cs_rbf_interpolant(tree, b[0], new_points, x, y, ri)
 mre = np.max(np.absolute(z-z_cs_rbf)) / max_az
 
 finish = time()
