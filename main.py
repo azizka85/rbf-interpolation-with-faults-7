@@ -24,7 +24,7 @@ max_az = np.max(np.absolute(z))
 
 fig = plt.figure()
 
-n = 512
+n = 1024
 
 ri = 0.8 # 8 * math.sqrt(n_min / n)
 
@@ -43,7 +43,7 @@ ax = fig.add_subplot(1, 4, 2, projection='3d')
 ax.plot_surface(x, y, z,cmap='plasma')
 ax.set_title('Surface plot')
 
-start = time()
+""" start = time()
 print('rbf start: ', start)
 
 new_points, tree, b = funcs.cs_rbf(points, [], ri)
@@ -56,7 +56,7 @@ print('rbf finish: ', finish, ', time: ', finish - start)
 ax = fig.add_subplot(1, 4, 3, projection='3d')
 ax.plot_surface(x, y, z_cs_rbf, cmap='plasma')
 ax.set_title(f'Without Faults, mre={round(mre, 2)}, time={round(finish - start, 2)}')
-
+ """
 start = time()
 print('cs rbf start: ', start)
 
