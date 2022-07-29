@@ -24,7 +24,7 @@ max_az = np.max(np.absolute(z))
 
 fig = plt.figure()
 
-n = 128
+n = 512
 
 ri = 0.8 # 8 * math.sqrt(n_min / n)
 
@@ -47,7 +47,7 @@ start = time()
 print('rbf start: ', start)
 
 new_points, tree, b = funcs.cs_rbf(points, [], ri)
-z_cs_rbf = funcs.cs_rbf_interpolant(tree, b[0], new_points, x, y, ri)
+z_cs_rbf = funcs.cs_rbf_interpolant(tree, b[0], new_points, [], x, y, ri)
 mre = np.max(np.absolute(z-z_cs_rbf)) / max_az
 
 finish = time()
@@ -61,7 +61,7 @@ start = time()
 print('cs rbf start: ', start)
 
 new_points, tree, b = funcs.cs_rbf(points, faults, ri)
-z_cs_rbf = funcs.cs_rbf_interpolant(tree, b[0], new_points, x, y, ri)
+z_cs_rbf = funcs.cs_rbf_interpolant(tree, b[0], new_points, faults, x, y, ri)
 mre = np.max(np.absolute(z-z_cs_rbf)) / max_az
 
 finish = time()

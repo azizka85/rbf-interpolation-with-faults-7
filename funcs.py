@@ -6,7 +6,7 @@ import numpy as np
 from scipy.spatial import KDTree
 from scipy.sparse.linalg import LinearOperator, cg
 
-from examples.example_1 import target, faults
+from examples.example_1 import target
 
 def distance(p1, p2):
   return math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2)
@@ -46,6 +46,68 @@ def calculate_point(p1, p2, r, l):
     p1[1] + r * (p2[1] - p1[1]) / l
   )
 
+def point_up_line(p, p1, line_data: tuple | None):
+  if line_data == None:
+    if p[0] >= p1[0]:
+      return True
+    else:
+      return False
+  else:
+    k, b = line_data
+
+    y = k * p[0] + b
+
+    if p[1] >= y:
+      return True
+    else:
+      return False
+  
+def exclude_point(p1, p2, pp1, pp2, line_data, line_data_2):
+  if line_data == None:
+    if line_data_2 == None:
+      if pp1[0] == p1[0]:
+        y1 = p1[1]
+        y2 = p2[1]
+
+        if p1[1] > p2[1]:
+          y1 = p2[1]
+          y2 = p1[1]
+
+        if (pp1[1] >= y1 and pp1[1] <= y2) or (pp2[1] >= y1 and pp2[1] <= y2):
+          return True
+    else:
+      k2, b2 = line_data_2
+
+      y = k2 * p1[0] + b2
+
+      y1 = p1[1]
+      y2 = p2[1]
+
+      if p1[1] > p2[1]:
+        y1 = p2[1]
+        y2 = p1[1]
+
+      if y >= y1 and y <= y2:
+        return True
+  else:
+    k, b = line_data
+
+    if line_data_2 == None:
+      y = k * pp1[0] + b
+      return point_in_range((pp1[0], y), p1, p2)
+    else:
+      k2, b2 = line_data_2
+
+      p = lines_intersection(k, b, k2, b2)
+
+      if p == None:
+        return point_in_range(pp1, p1, p2) or point_in_range(pp2, p1, p2)
+      else:
+        return point_in_range(p, p1, p2)  
+
+  return False
+
+
 def exclude_points(pr, p1, p2, tree, rf, points, res):
   line_data = line(p1, p2)
 
@@ -57,20 +119,10 @@ def exclude_points(pr, p1, p2, tree, rf, points, res):
   for i in found:
     p = points[i]
 
-    if line_data == None:
-      if p[0] >= p1[0]:
-        up.append(i)
-      else:
-        down.append(i)
+    if point_up_line(p, p1, line_data):
+      up.append(i)
     else:
-      k, b = line_data
-
-      y = k * p[0] + b
-
-      if p[1] >= y:
-        up.append(i)
-      else:
-        down.append(i)
+      down.append(i)
 
   for i in up:
     pp1 = points[i]
@@ -78,53 +130,9 @@ def exclude_points(pr, p1, p2, tree, rf, points, res):
     for j in down:
       pp2 = points[j]
 
-      line_data_2 = line(pp1, pp2)      
+      line_data_2 = line(pp1, pp2)       
 
-      exclude = False  
-
-      if line_data == None:
-        if line_data_2 == None:
-          if pp1[0] == p1[0]:
-            y1 = p1[1]
-            y2 = p2[1]
-
-            if p1[1] > p2[1]:
-              y1 = p2[1]
-              y2 = p1[1]
-
-            if (pp1[1] >= y1 and pp1[1] <= y2) or (pp2[1] >= y1 and pp2[1] <= y2):
-              exclude = True
-        else:
-          k2, b2 = line_data_2
-
-          y = k2 * p1[0] + b2
-
-          y1 = p1[1]
-          y2 = p2[1]
-
-          if p1[1] > p2[1]:
-            y1 = p2[1]
-            y2 = p1[1]
-
-          if y >= y1 and y <= y2:
-            exclude = True
-      else:
-        k, b = line_data
-
-        if line_data_2 == None:
-          y = k * pp1[0] + b
-          exclude = point_in_range((pp1[0], y), p1, p2)
-        else:
-          k2, b2 = line_data_2
-
-          p = lines_intersection(k, b, k2, b2)
-
-          if p == None:
-            exclude = point_in_range(pp1, p1, p2) or point_in_range(pp2, p1, p2)
-          else:
-            exclude = point_in_range(p, p1, p2)
-
-      if exclude:
+      if exclude_point(p1, p2, pp1, pp2, line_data, line_data_2):
         res[i].discard(j)
         res[j].discard(i)  
 
@@ -144,6 +152,27 @@ def faults_exclude_points(faults, tree, rf, points, res, ri):
       r += ri
 
     exclude_points(p2, p1, p2, tree, rf, points, res)  
+
+def faults_exclude_point_from_found(pp1, found, points, faults):
+  res = set(found)
+
+  for p1, p2 in faults:
+    line_data = line(p1, p2)
+
+    pp1_up = point_up_line(pp1, p1, line_data)
+
+    for i in found:
+      pp2 = points[i]
+
+      pp2_up = point_up_line(pp2, p1, line_data)
+
+      if pp1_up != pp2_up:
+        line_data_2 = line(pp1, pp2)
+
+        if exclude_point(p1, p2, pp1, pp2, line_data, line_data_2):
+          res.discard(i)
+
+  return res
 
 def rbf(points):
   m = len(points)
@@ -283,7 +312,7 @@ def cs_rbf(points, faults, ri):
 
   return points, tree, b
 
-def cs_rbf_interpolant(tree: KDTree, b, points, x, y, ri):
+def cs_rbf_interpolant(tree: KDTree, b, points, faults, x, y, ri):
   n, m = x.shape
 
   z = np.zeros(x.shape)
@@ -291,6 +320,7 @@ def cs_rbf_interpolant(tree: KDTree, b, points, x, y, ri):
   for i in range(0, n):
     for j in range(0, m):
       found = tree.query_ball_point([x[i, j], y[i, j]], ri)    
+      found = faults_exclude_point_from_found([x[i, j], y[i, j]], found, points, faults)
 
       for k in found:        
         p = points[k]
